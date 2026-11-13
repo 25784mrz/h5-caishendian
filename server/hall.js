@@ -10,6 +10,9 @@ export function occupyCount(hall) {
 }
 
 export function join(hall, sessionId, name, bannedWords, now) {
+  if (typeof sessionId !== "string" || sessionId.length < 8) {
+    return { ok: false, message: "这句话不能用" };
+  }
   const existing = hall.people[sessionId];
   if (existing) {
     existing.lastHeartbeat = now;

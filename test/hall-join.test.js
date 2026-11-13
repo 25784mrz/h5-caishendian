@@ -16,13 +16,13 @@ test("the first person enters at the door", () => {
 
 test("person 41 waits, and the queue order is arrival order", () => {
   const hall = createHall();
-  for (let i = 0; i < HALL_CAP; i += 1) join(hall, `s${i}`, "招财", banned, 1000);
-  const waiting = join(hall, "s40", "进宝", banned, 1000);
-  const later = join(hall, "s41", "纳福", banned, 1000);
+  for (let i = 0; i < HALL_CAP; i += 1) join(hall, `session-s${i}`, "招财", banned, 1000);
+  const waiting = join(hall, "session-s40", "进宝", banned, 1000);
+  const later = join(hall, "session-s41", "纳福", banned, 1000);
   assert.equal(waiting.result, "queued");
   assert.equal(later.result, "queued");
-  assert.deepEqual(hall.queue, ["s40", "s41"]);
-  assert.equal(snapshot(hall, "s41").queueAhead, 1);
+  assert.deepEqual(hall.queue, ["session-s40", "session-s41"]);
+  assert.equal(snapshot(hall, "session-s41").queueAhead, 1);
   assert.equal(occupyCount(hall), HALL_CAP);
 });
 
