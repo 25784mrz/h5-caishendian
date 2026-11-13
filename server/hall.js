@@ -1,4 +1,14 @@
-import { DOOR_Y, ENTRY, HALL_CAP, INCENSE_MS, MOVE_X, MOVE_Y, TEXT, nearCenser } from "../shared/constants.js";
+import {
+  DOOR_Y,
+  ENTRY,
+  HALL_CAP,
+  HEARTBEAT_TIMEOUT_MS,
+  INCENSE_MS,
+  MOVE_X,
+  MOVE_Y,
+  TEXT,
+  nearCenser,
+} from "../shared/constants.js";
 import { checkText } from "./filter.js";
 
 export function createHall() {
@@ -88,10 +98,10 @@ export function leave(hall, sessionId) {
   return { ok: true };
 }
 
-export function snapshot(hall, sessionId) {
+export function snapshot(hall, sessionId, now = 0) {
   const you = hall.people[sessionId];
   return {
-    now: you?.lastHeartbeat ?? 0,
+    now,
     you: sessionId,
     place: you?.place ?? null,
     queueAhead: you?.place === "queue" ? Math.max(0, hall.queue.indexOf(sessionId)) : 0,
@@ -104,4 +114,47 @@ export function snapshot(hall, sessionId) {
       incense: person.incense ? { wish: person.incense.wish, litAt: person.incense.litAt } : null,
     })),
   };
+}
+
+export function heartbeat(hall, sessionId, now) {
+  const person = hall.people[sessionId];
+  if (!person) return { ok: false };
+  person.lastHeartbeat = now;
+  return { ok: true };
+}
+
+export function sweep(hall, now) {
+  for (const person of Object.values(hall.people)) {
+    if (now - person.lastHeartbeat > HEARTBEAT_TIMEOUT_MS) {
+      delete hall.people[person.sessionId];
+      continue;
+    }
+    if (person.incense && now - person.incense.litAt >= INCENSE_MS) person.incense = null;
+  }
+  hall.queue = hall.queue.filter((id) => hall.people[id]);
+  promote(hall);
+  return hall;
+}
+
+export function restore(data, now) {
+  if (!data || typeof data.people !== "object" || Array.isArray(data.people) || !Array.isArray(data.queue)) {
+    throw new Error("hall file unreadable");
+  }
+  const hall = createHall();
+  for (const [id, person] of Object.entries(data.people)) {
+    if (!person || person.sessionId !== id || typeof person.name !== "string") {
+      throw new Error("hall file unreadable");
+    }
+    hall.people[id] = {
+      sessionId: id,
+      name: person.name,
+      x: person.x ?? null,
+      y: person.y ?? null,
+      place: person.place,
+      lastHeartbeat: person.lastHeartbeat,
+      incense: person.incense ? { wish: person.incense.wish, litAt: person.incense.litAt } : null,
+    };
+  }
+  hall.queue = data.queue.slice();
+  return sweep(hall, now);
 }
