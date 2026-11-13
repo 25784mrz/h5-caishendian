@@ -54,9 +54,11 @@ export function promote(hall) {
 export function move(hall, sessionId, x, y) {
   const person = hall.people[sessionId];
   if (!person || person.place === "queue") return { ok: false, message: TEXT.goOutside };
-  const cx = Math.min(MOVE_X.max, Math.max(MOVE_X.min, Number(x)));
-  const cy = Math.min(MOVE_Y.max, Math.max(MOVE_Y.min, Number(y)));
-  if (!Number.isFinite(cx) || !Number.isFinite(cy)) return { ok: false, message: TEXT.goOutside };
+  const nx = Number(x);
+  const ny = Number(y);
+  if (!Number.isFinite(nx) || !Number.isFinite(ny)) return { ok: false, message: TEXT.goOutside };
+  const cx = Math.min(MOVE_X.max, Math.max(MOVE_X.min, nx));
+  const cy = Math.min(MOVE_Y.max, Math.max(MOVE_Y.min, ny));
   person.x = cx;
   person.y = cy;
   person.place = cy > DOOR_Y ? "outside" : "inside";

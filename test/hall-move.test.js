@@ -40,6 +40,18 @@ test("an outside person still uses a slot until they exit", () => {
   assert.equal(hall.people["session-9"].y < 1, true);
 });
 
+test("move rejects non-finite coordinates without changing the person", () => {
+  const hall = createHall();
+  join(hall, "session-1", "招财", banned, 1000);
+  const { x, y } = hall.people["session-1"];
+  assert.deepEqual(move(hall, "session-1", Infinity, 0.5), { ok: false, message: TEXT.goOutside });
+  assert.equal(hall.people["session-1"].x, x);
+  assert.equal(hall.people["session-1"].y, y);
+  assert.deepEqual(move(hall, "session-1", NaN, 0.5), { ok: false, message: TEXT.goOutside });
+  assert.equal(hall.people["session-1"].x, x);
+  assert.equal(hall.people["session-1"].y, y);
+});
+
 test("leaving the queue does not let a later person skip ahead", () => {
   const hall = createHall();
   fill(hall);
