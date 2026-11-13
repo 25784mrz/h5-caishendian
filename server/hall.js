@@ -10,7 +10,7 @@ export function occupyCount(hall) {
 }
 
 export function join(hall, sessionId, name, bannedWords, now) {
-  if (typeof sessionId !== "string" || sessionId.length < 8) {
+  if (typeof sessionId !== "string" || !/^s[a-z0-9-]{7,}$/.test(sessionId)) {
     return { ok: false, message: "这句话不能用" };
   }
   const existing = hall.people[sessionId];

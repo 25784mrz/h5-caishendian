@@ -43,3 +43,16 @@ test("a bad name does not enter", () => {
   assert.equal(result.ok, false);
   assert.equal(occupyCount(hall), 0);
 });
+
+test("object prototype names are not accepted as session ids", () => {
+  const hall = createHall();
+  const proto = join(hall, "__proto__", "招财", banned, 1000);
+  const ctor = join(hall, "constructor", "进宝", banned, 1000);
+  assert.equal(proto.ok, false);
+  assert.equal(proto.message, "这句话不能用");
+  assert.equal(ctor.ok, false);
+  assert.equal(ctor.message, "这句话不能用");
+  assert.equal(occupyCount(hall), 0);
+  assert.equal(Object.hasOwn(hall.people, "__proto__"), false);
+  assert.equal(Object.hasOwn(hall.people, "constructor"), false);
+});
