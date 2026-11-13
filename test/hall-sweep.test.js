@@ -39,3 +39,13 @@ test("restore keeps a fresh person and drops an expired heartbeat", () => {
 test("restore rejects a broken shape", () => {
   assert.throws(() => restore({ people: [] }, 0), /hall file unreadable/);
 });
+
+test("restore rejects a person with no lastHeartbeat", () => {
+  const saved = {
+    people: {
+      "session-1": { sessionId: "session-1", name: "招财", x: null, y: null, place: "inside", incense: null },
+    },
+    queue: [],
+  };
+  assert.throws(() => restore(saved, 0), /hall file unreadable/);
+});

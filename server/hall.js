@@ -145,6 +145,25 @@ export function restore(data, now) {
     if (!person || person.sessionId !== id || typeof person.name !== "string") {
       throw new Error("hall file unreadable");
     }
+    if (!Number.isFinite(person.lastHeartbeat)) {
+      throw new Error("hall file unreadable");
+    }
+    if (person.place !== "inside" && person.place !== "outside" && person.place !== "queue") {
+      throw new Error("hall file unreadable");
+    }
+    const coordOk = (v) => v === null || Number.isFinite(v);
+    if (!coordOk(person.x) || !coordOk(person.y)) {
+      throw new Error("hall file unreadable");
+    }
+    if (person.incense !== null) {
+      if (
+        typeof person.incense !== "object" ||
+        typeof person.incense.wish !== "string" ||
+        !Number.isFinite(person.incense.litAt)
+      ) {
+        throw new Error("hall file unreadable");
+      }
+    }
     hall.people[id] = {
       sessionId: id,
       name: person.name,
