@@ -183,6 +183,29 @@ export function restore(data, now) {
       incense: person.incense ? { wish: person.incense.wish, litAt: person.incense.litAt } : null,
     };
   }
+  const queued = new Set();
+  for (const id of data.queue) {
+    if (typeof id !== "string") {
+      throw new Error("hall file unreadable");
+    }
+    if (queued.has(id)) {
+      throw new Error("hall file unreadable");
+    }
+    queued.add(id);
+    const person = hall.people[id];
+    if (!person || person.place !== "queue") {
+      throw new Error("hall file unreadable");
+    }
+  }
+  for (const person of Object.values(hall.people)) {
+    if (person.place === "queue") {
+      if (!queued.has(person.sessionId)) {
+        throw new Error("hall file unreadable");
+      }
+    } else if (queued.has(person.sessionId)) {
+      throw new Error("hall file unreadable");
+    }
+  }
   hall.queue = data.queue.slice();
   return sweep(hall, now);
 }

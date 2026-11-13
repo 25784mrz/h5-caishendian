@@ -71,3 +71,21 @@ test("restore rejects an inside person with null x", () => {
   };
   assert.throws(() => restore(saved, 0), /hall file unreadable/);
 });
+
+test("restore rejects an inside person listed in queue", () => {
+  const saved = {
+    people: {
+      "session-1": {
+        sessionId: "session-1",
+        name: "招财",
+        place: "inside",
+        lastHeartbeat: 0,
+        incense: null,
+        x: 0.5,
+        y: 0.92,
+      },
+    },
+    queue: ["session-1"],
+  };
+  assert.throws(() => restore(saved, 0), /hall file unreadable/);
+});
