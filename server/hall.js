@@ -1,4 +1,4 @@
-import { DOOR_Y, ENTRY, HALL_CAP, MOVE_X, MOVE_Y, TEXT } from "../shared/constants.js";
+import { DOOR_Y, ENTRY, HALL_CAP, INCENSE_MS, MOVE_X, MOVE_Y, TEXT, nearCenser } from "../shared/constants.js";
 import { checkText } from "./filter.js";
 
 export function createHall() {
@@ -62,6 +62,20 @@ export function move(hall, sessionId, x, y) {
   person.x = cx;
   person.y = cy;
   person.place = cy > DOOR_Y ? "outside" : "inside";
+  return { ok: true };
+}
+
+export function offer(hall, sessionId, wish, bannedWords, now) {
+  const person = hall.people[sessionId];
+  if (!person || person.place !== "inside" || !nearCenser(person.x, person.y)) {
+    return { ok: false, message: TEXT.goToCenser };
+  }
+  if (person.incense && now - person.incense.litAt < INCENSE_MS) {
+    return { ok: false, message: TEXT.incenseStill };
+  }
+  const checked = checkText(wish, "wish", bannedWords);
+  if (!checked.ok) return checked;
+  person.incense = { wish, litAt: now };
   return { ok: true };
 }
 
