@@ -49,3 +49,25 @@ test("restore rejects a person with no lastHeartbeat", () => {
   };
   assert.throws(() => restore(saved, 0), /hall file unreadable/);
 });
+
+test("restore rejects null people", () => {
+  assert.throws(() => restore({ people: null, queue: [] }, 0), /hall file unreadable/);
+});
+
+test("restore rejects an inside person with null x", () => {
+  const saved = {
+    people: {
+      "session-1": {
+        sessionId: "session-1",
+        name: "招财",
+        place: "inside",
+        lastHeartbeat: 0,
+        incense: null,
+        x: null,
+        y: 0.5,
+      },
+    },
+    queue: [],
+  };
+  assert.throws(() => restore(saved, 0), /hall file unreadable/);
+});

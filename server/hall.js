@@ -137,7 +137,13 @@ export function sweep(hall, now) {
 }
 
 export function restore(data, now) {
-  if (!data || typeof data.people !== "object" || Array.isArray(data.people) || !Array.isArray(data.queue)) {
+  if (
+    !data ||
+    data.people === null ||
+    typeof data.people !== "object" ||
+    Array.isArray(data.people) ||
+    !Array.isArray(data.queue)
+  ) {
     throw new Error("hall file unreadable");
   }
   const hall = createHall();
@@ -151,8 +157,11 @@ export function restore(data, now) {
     if (person.place !== "inside" && person.place !== "outside" && person.place !== "queue") {
       throw new Error("hall file unreadable");
     }
-    const coordOk = (v) => v === null || Number.isFinite(v);
-    if (!coordOk(person.x) || !coordOk(person.y)) {
+    if (person.place === "inside" || person.place === "outside") {
+      if (!Number.isFinite(person.x) || !Number.isFinite(person.y)) {
+        throw new Error("hall file unreadable");
+      }
+    } else if (person.x !== null || person.y !== null) {
       throw new Error("hall file unreadable");
     }
     if (person.incense !== null) {
