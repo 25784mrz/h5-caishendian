@@ -34,3 +34,28 @@ test("a broken file is left untouched", async () => {
   assert.equal(await readFile(file, "utf8"), "{");
   await rm(dir, { recursive: true });
 });
+
+test("concurrent writes leave one complete hall on disk", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "hall-"));
+  const file = join(dir, "hall.json");
+  const hallA = createHall();
+  const hallB = createHall();
+  enter(hallA, "session-aaaaa", "甲", [], 1000);
+  enter(hallB, "session-bbbbb", "乙", [], 1000);
+  await Promise.all([writeHallFile(file, hallA), writeHallFile(file, hallB)]);
+  const parsed = JSON.parse(await readFile(file, "utf8"));
+  let matches = false;
+  try {
+    assert.deepEqual(parsed, hallA);
+    matches = true;
+  } catch {
+    try {
+      assert.deepEqual(parsed, hallB);
+      matches = true;
+    } catch {
+      matches = false;
+    }
+  }
+  assert.ok(matches);
+  await rm(dir, { recursive: true });
+});

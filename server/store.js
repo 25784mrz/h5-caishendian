@@ -21,7 +21,7 @@ export async function readHallFile(file, now) {
 
 export async function writeHallFile(file, hall) {
   await mkdir(dirname(file), { recursive: true });
-  const tmp = `${file}.tmp`;
+  const tmp = `${file}.${process.pid}.${Date.now()}.${Math.random().toString(16).slice(2)}.tmp`;
   await writeFile(tmp, JSON.stringify(hall));
   await rename(tmp, file);
 }
