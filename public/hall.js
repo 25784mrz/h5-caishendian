@@ -38,10 +38,16 @@ function connect() {
     const msg = JSON.parse(event.data);
     if (msg.type === "rejected") {
       toast = msg.message;
+      if (msg.action === "hello") name = readName(phone);
       render();
       return;
     }
     if (msg.type === "state") {
+      const me = msg.people.find((person) => person.sessionId === sessionId);
+      if (me) {
+        name = me.name;
+        if (readName(phone) !== name) writeName(phone, name);
+      }
       const lit = newlyLit(previousPeople, msg.people);
       previousPeople = msg.people;
       for (const id of lit) {
@@ -82,10 +88,13 @@ function render() {
       const checked = checkText(next, "name", bannedWords);
       if (!checked.ok) { toast = checked.message; render(); return; }
       name = next;
-      writeName(phone, name);
       if (!audioOn) { startAmbient(); audioOn = true; }
       send({ type: "hello", name, sessionId });
     };
+    return;
+  }
+  if (!state) {
+    app.innerHTML = `<section class="screen reopening"><h1>${TEXT.reopening}</h1></section>`;
     return;
   }
   if (screen === "queue") {
