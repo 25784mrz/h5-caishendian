@@ -7,7 +7,6 @@ import { heartbeat, join as enter, leave, move, offer, snapshot, sweep } from ".
 import { createSaver } from "./saver.js";
 import { readHallFile, writeHallFile } from "./store.js";
 import { loadBannedWords } from "./words.js";
-import { checkText } from "./filter.js";
 import { SWEEP_MS } from "../shared/constants.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -42,7 +41,6 @@ export async function createTempleServer(options) {
   const bannedWords = loadBannedWords(await readFile(options.wordsFile, "utf8"));
   const saver = createSaver((value) => writeHallFile(options.hallFile, value));
   const sockets = new Map();
-  let helloChain = Promise.resolve();
 
   function broadcast() {
     const now = nowFn();
@@ -70,30 +68,20 @@ export async function createTempleServer(options) {
       }
       const now = nowFn();
       if (msg.type === "hello") {
-        await (helloChain = helloChain.then(async () => {
-          const result = enter(hall, msg.sessionId, msg.name, bannedWords, now);
-          if (!result.ok) {
-            ws.send(JSON.stringify({ type: "rejected", action: "hello", message: result.message }));
-            return;
-          }
-          sessionId = msg.sessionId;
-          const previous = sockets.get(sessionId);
-          if (previous && previous !== ws) previous.close();
-          sockets.set(sessionId, ws);
-          await saver.saveNow(hall, now);
-          broadcast();
-          await new Promise((resolve) => setTimeout(resolve, 25));
-        }));
+        const result = enter(hall, msg.sessionId, msg.name, bannedWords, now);
+        if (!result.ok) {
+          ws.send(JSON.stringify({ type: "rejected", action: "hello", message: result.message }));
+          return;
+        }
+        sessionId = msg.sessionId;
+        const previous = sockets.get(sessionId);
+        if (previous && previous !== ws) previous.close();
+        sockets.set(sessionId, ws);
+        await saver.saveNow(hall, now);
+        broadcast();
         return;
       }
       if (!sessionId || !hall.people[sessionId]) return;
-      if (msg.type === "offer") {
-        const checked = checkText(msg.wish, "wish", bannedWords);
-        if (!checked.ok) {
-          ws.send(JSON.stringify({ type: "rejected", action: "offer", message: checked.message }));
-          return;
-        }
-      }
       if (msg.type === "heartbeat") {
         heartbeat(hall, sessionId, now);
         await saver.saveHeartbeat(hall, now);

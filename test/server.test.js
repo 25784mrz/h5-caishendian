@@ -36,13 +36,15 @@ test("two browsers see one wish, and the server rejects a bad wish", async () =>
   const a = await open(server.port);
   const b = await open(server.port);
   a.send({ type: "hello", name: "招财", sessionId: "session-a" });
-  b.send({ type: "hello", name: "进宝", sessionId: "session-b" });
   await a.next();
+  b.send({ type: "hello", name: "进宝", sessionId: "session-b" });
   await b.next();
   a.send({ type: "offer", wish: "博彩" });
-  assert.equal((await a.next()).message, "这句话不能用");
+  assert.equal((await a.next()).message, "先走到香炉前");
   a.send({ type: "move", x: CENSER.x, y: CENSER.y });
   await a.next();
+  a.send({ type: "offer", wish: "博彩" });
+  assert.equal((await a.next()).message, "这句话不能用");
   a.send({ type: "offer", wish: "顺风顺水" });
   const seen = await b.next();
   assert.equal(seen.people.find((person) => person.sessionId === "session-a").incense.wish, "顺风顺水");
