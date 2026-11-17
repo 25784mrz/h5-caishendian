@@ -41,12 +41,56 @@ export async function createTempleServer(options) {
   const bannedWords = loadBannedWords(await readFile(options.wordsFile, "utf8"));
   const saver = createSaver((value) => writeHallFile(options.hallFile, value));
   const sockets = new Map();
+  let hallQueue = Promise.resolve();
 
   function broadcast() {
     const now = nowFn();
     for (const [sessionId, ws] of sockets) {
       if (ws.readyState === ws.OPEN) ws.send(JSON.stringify({ type: "state", ...snapshot(hall, sessionId, now) }));
     }
+  }
+
+  function enqueueHallOperation(operation) {
+    hallQueue = hallQueue.then(operation).catch((error) => {
+      console.error(error);
+    });
+    return hallQueue;
+  }
+
+  async function saveAndBroadcast(save) {
+    try {
+      await save();
+    } catch (error) {
+      console.error(error);
+    }
+    broadcast();
+  }
+
+  async function saveHeartbeat(now) {
+    try {
+      await saver.saveHeartbeat(hall, now);
+    } catch (error) {
+      console.error(error);
+      broadcast();
+    }
+  }
+
+  function enqueueSweep(forceSave = false) {
+    return enqueueHallOperation(async () => {
+      const now = nowFn();
+      const before = JSON.stringify(hall);
+      sweep(hall, now);
+      if (forceSave || JSON.stringify(hall) !== before) {
+        await saveAndBroadcast(() => saver.saveNow(hall, now));
+        return;
+      }
+      try {
+        await saver.flush(now);
+      } catch (error) {
+        console.error(error);
+        broadcast();
+      }
+    });
   }
 
   const httpServer = createServer((req, res) => {
@@ -59,49 +103,50 @@ export async function createTempleServer(options) {
 
   wss.on("connection", (ws) => {
     let sessionId = null;
-    ws.on("message", async (buf) => {
+    ws.on("message", (buf) => {
       let msg;
       try {
         msg = JSON.parse(String(buf));
       } catch {
         return;
       }
-      const now = nowFn();
-      if (msg.type === "hello") {
-        const result = enter(hall, msg.sessionId, msg.name, bannedWords, now);
-        if (!result.ok) {
-          ws.send(JSON.stringify({ type: "rejected", action: "hello", message: result.message }));
+      enqueueHallOperation(async () => {
+        const now = nowFn();
+        if (msg.type === "hello") {
+          if (sessionId !== null) return;
+          const result = enter(hall, msg.sessionId, msg.name, bannedWords, now);
+          if (!result.ok) {
+            ws.send(JSON.stringify({ type: "rejected", action: "hello", message: result.message }));
+            return;
+          }
+          sessionId = msg.sessionId;
+          const previous = sockets.get(sessionId);
+          if (previous && previous !== ws) previous.close();
+          sockets.set(sessionId, ws);
+          await saveAndBroadcast(() => saver.saveNow(hall, now));
           return;
         }
-        sessionId = msg.sessionId;
-        const previous = sockets.get(sessionId);
-        if (previous && previous !== ws) previous.close();
-        sockets.set(sessionId, ws);
-        await saver.saveNow(hall, now);
-        broadcast();
-        return;
-      }
-      if (!sessionId || !hall.people[sessionId]) return;
-      if (msg.type === "heartbeat") {
-        heartbeat(hall, sessionId, now);
-        await saver.saveHeartbeat(hall, now);
-        return;
-      }
-      const result = msg.type === "move"
-        ? move(hall, sessionId, msg.x, msg.y)
-        : msg.type === "offer"
-          ? offer(hall, sessionId, msg.wish, bannedWords, now)
-          : msg.type === "exit"
-            ? leave(hall, sessionId)
-            : null;
-      if (!result) return;
-      if (!result.ok) {
-        ws.send(JSON.stringify({ type: "rejected", action: msg.type, message: result.message }));
-        return;
-      }
-      if (msg.type === "exit") sockets.delete(sessionId);
-      await saver.saveNow(hall, now);
-      broadcast();
+        if (!sessionId || !hall.people[sessionId]) return;
+        if (msg.type === "heartbeat") {
+          heartbeat(hall, sessionId, now);
+          await saveHeartbeat(now);
+          return;
+        }
+        const result = msg.type === "move"
+          ? move(hall, sessionId, msg.x, msg.y)
+          : msg.type === "offer"
+            ? offer(hall, sessionId, msg.wish, bannedWords, now)
+            : msg.type === "exit"
+              ? leave(hall, sessionId)
+              : null;
+        if (!result) return;
+        if (!result.ok) {
+          ws.send(JSON.stringify({ type: "rejected", action: msg.type, message: result.message }));
+          return;
+        }
+        if (msg.type === "exit") sockets.delete(sessionId);
+        await saveAndBroadcast(() => saver.saveNow(hall, now));
+      });
     });
     ws.on("close", () => {
       if (sessionId && sockets.get(sessionId) === ws) sockets.delete(sessionId);
@@ -109,11 +154,7 @@ export async function createTempleServer(options) {
   });
 
   const timer = options.sweepInterval === 0 ? null : setInterval(() => {
-    const now = nowFn();
-    const before = JSON.stringify(hall);
-    sweep(hall, now);
-    if (JSON.stringify(hall) !== before) saver.saveNow(hall, now).then(broadcast);
-    else saver.flush(now);
+    enqueueSweep();
   }, options.sweepInterval ?? SWEEP_MS);
 
   await new Promise((resolve) => httpServer.listen(options.port ?? 0, "127.0.0.1", resolve));
@@ -121,9 +162,7 @@ export async function createTempleServer(options) {
     port: httpServer.address().port,
     hall,
     sweep() {
-      const now = nowFn();
-      sweep(hall, now);
-      return saver.saveNow(hall, now).then(broadcast);
+      return enqueueSweep(true);
     },
     close() {
       if (timer) clearInterval(timer);
@@ -131,10 +170,12 @@ export async function createTempleServer(options) {
         client.terminate();
       }
       sockets.clear();
-      return new Promise((resolve) => {
-        wss.close(() => {
-          httpServer.closeAllConnections?.();
-          httpServer.close(resolve);
+      return hallQueue.then(() => {
+        return new Promise((resolve) => {
+          wss.close(() => {
+            httpServer.closeAllConnections?.();
+            httpServer.close(resolve);
+          });
         });
       });
     },
