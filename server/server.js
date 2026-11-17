@@ -42,6 +42,7 @@ export async function createTempleServer(options) {
   const saver = createSaver((value) => writeHallFile(options.hallFile, value));
   const sockets = new Map();
   let hallQueue = Promise.resolve();
+  let savePending = false;
 
   function broadcast() {
     const now = nowFn();
@@ -60,18 +61,33 @@ export async function createTempleServer(options) {
   async function saveAndBroadcast(save) {
     try {
       await save();
+      savePending = false;
     } catch (error) {
+      savePending = true;
       console.error(error);
+      return false;
     }
     broadcast();
+    return true;
   }
 
   async function saveHeartbeat(now) {
+    const retrying = savePending;
     try {
-      await saver.saveHeartbeat(hall, now);
+      const wrote = await saver.saveHeartbeat(hall, now);
+      if (retrying && wrote) {
+        savePending = false;
+        broadcast();
+      }
     } catch (error) {
+      savePending = true;
       console.error(error);
-      broadcast();
+    }
+  }
+
+  async function retryPendingSave(wasPending, now) {
+    if (wasPending && savePending) {
+      await saveAndBroadcast(() => saver.saveNow(hall, now));
     }
   }
 
@@ -80,15 +96,15 @@ export async function createTempleServer(options) {
       const now = nowFn();
       const before = JSON.stringify(hall);
       sweep(hall, now);
-      if (forceSave || JSON.stringify(hall) !== before) {
+      if (forceSave || savePending || JSON.stringify(hall) !== before) {
         await saveAndBroadcast(() => saver.saveNow(hall, now));
         return;
       }
       try {
         await saver.flush(now);
       } catch (error) {
+        savePending = true;
         console.error(error);
-        broadcast();
       }
     });
   }
@@ -112,11 +128,16 @@ export async function createTempleServer(options) {
       }
       enqueueHallOperation(async () => {
         const now = nowFn();
+        const wasPending = savePending;
         if (msg.type === "hello") {
-          if (sessionId !== null) return;
+          if (sessionId !== null) {
+            await retryPendingSave(wasPending, now);
+            return;
+          }
           const result = enter(hall, msg.sessionId, msg.name, bannedWords, now);
           if (!result.ok) {
             ws.send(JSON.stringify({ type: "rejected", action: "hello", message: result.message }));
+            await retryPendingSave(wasPending, now);
             return;
           }
           sessionId = msg.sessionId;
@@ -126,7 +147,10 @@ export async function createTempleServer(options) {
           await saveAndBroadcast(() => saver.saveNow(hall, now));
           return;
         }
-        if (!sessionId || !hall.people[sessionId]) return;
+        if (!sessionId || !hall.people[sessionId]) {
+          await retryPendingSave(wasPending, now);
+          return;
+        }
         if (msg.type === "heartbeat") {
           heartbeat(hall, sessionId, now);
           await saveHeartbeat(now);
@@ -139,9 +163,13 @@ export async function createTempleServer(options) {
             : msg.type === "exit"
               ? leave(hall, sessionId)
               : null;
-        if (!result) return;
+        if (!result) {
+          await retryPendingSave(wasPending, now);
+          return;
+        }
         if (!result.ok) {
           ws.send(JSON.stringify({ type: "rejected", action: msg.type, message: result.message }));
+          await retryPendingSave(wasPending, now);
           return;
         }
         if (msg.type === "exit") sockets.delete(sessionId);

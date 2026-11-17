@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WebSocket } from "ws";
@@ -129,6 +129,50 @@ test("a socket ignores a second hello with a different session id", async () => 
     await client.next();
     assert.deepEqual(Object.keys(server.hall.people), ["session-first"]);
   } finally {
+    if (server) await server.close();
+    if (dir) await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a failed save is not broadcast and the next change persists both", async () => {
+  let dir;
+  let server;
+  const originalError = console.error;
+  const errors = [];
+  try {
+    dir = await mkdtemp(join(tmpdir(), "temple-"));
+    const hallFile = join(dir, "hall.json");
+    const wordsFile = join(dir, "words.txt");
+    await writeFile(wordsFile, "\n");
+    server = await createTempleServer({
+      hallFile,
+      wordsFile,
+      port: 0,
+      now: () => 10_000,
+      sweepInterval: 0,
+    });
+    const client = await open(server.port);
+    client.send({ type: "hello", name: "招财", sessionId: "session-durable" });
+    await client.next();
+
+    console.error = (error) => errors.push(error);
+    await chmod(dir, 0o500);
+    client.send({ type: "move", x: CENSER.x, y: CENSER.y });
+    await assert.rejects(client.next(), /no message/);
+    assert.equal(errors.length, 1);
+
+    await chmod(dir, 0o700);
+    client.send({ type: "offer", wish: "顺风顺水" });
+    const state = await client.next();
+    assert.equal(state.people[0].incense.wish, "顺风顺水");
+
+    const saved = JSON.parse(await readFile(hallFile, "utf8"));
+    assert.equal(saved.people["session-durable"].x, CENSER.x);
+    assert.equal(saved.people["session-durable"].y, CENSER.y);
+    assert.equal(saved.people["session-durable"].incense.wish, "顺风顺水");
+  } finally {
+    console.error = originalError;
+    if (dir) await chmod(dir, 0o700).catch(() => {});
     if (server) await server.close();
     if (dir) await rm(dir, { recursive: true, force: true });
   }
