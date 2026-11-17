@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { HALL_CAP } from "../shared/constants.js";
+import { HALL_CAP } from "../server/constants.js";
 import { createHall, join, occupyCount, snapshot } from "../server/hall.js";
 
 const banned = ["傻逼"];

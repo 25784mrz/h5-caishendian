@@ -1,0 +1,384 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  margin: 0; display: grid; place-items: center;
+  background: #1a120c; color: #f3d48a; font-family: "Songti SC", serif;
+}
+#app { width: 750px; height: 1334px; overflow: hidden; transform-origin: center center; }
+.screen { width: 750px; height: 1334px; padding: 24px 16px; }
+.name, .queue, .reopening { background: #6b1d1d; }
+.hall, .porch { position: relative; width: 750px; height: 1334px; overflow: hidden; background: #d7e3ea; }
+.stage {
+  --tilt: 50deg;
+  position: absolute;
+  inset: 0;
+  perspective: 1200px;
+  perspective-origin: 50% 28%;
+  overflow: hidden;
+  background: linear-gradient(#8eafc4, #d5e0dc 32%, #c9bea8 72%);
+}
+.world { position: absolute; left: 0; top: 0; width: 2200px; height: 1800px; }
+.tilt {
+  position: absolute; inset: 0;
+  transform: rotateX(var(--tilt));
+  transform-origin: 50% 70%;
+  transform-style: preserve-3d;
+}
+.sky, .ridge, .facade, .interior, .hall-block, .side-hall, .bell, .gate-door, .back-door, .sill,
+.zone, .carpet, .upright, .wish, .person, .stand, .name, .gate-wall { pointer-events: none; }
+.sky { position: absolute; left: 0; right: 0; top: 0; height: 28%;
+  background: linear-gradient(#c5d7e2, transparent); }
+.ridge {
+  position: absolute; top: 8%; width: 28%; height: 22%;
+  background: radial-gradient(ellipse at 50% 100%, #8d9b97 0 68%, transparent 69%);
+}
+.ridge.left { left: -6%; }
+.ridge.right { right: -6%; }
+.facade { position: absolute; left: 0; right: 0; top: 0; height: 62%; }
+.interior { position: absolute; left: 0; right: 0; top: 0; height: 62%; background: #5a3a2a; }
+.interior .roof { position: absolute; left: -8%; right: -8%; top: 0; height: 90px; }
+.inner-wall {
+  position: absolute; left: 8%; right: 8%; top: 78px; bottom: 0;
+  background: linear-gradient(#6a4030, #3a241c 70%);
+  border: 4px solid #a33b12; border-bottom: none;
+}
+.hall-block { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); }
+.roof {
+  background: linear-gradient(#f6b15a, #e25812 58%, #b8430c);
+  clip-path: polygon(50% 10%, 58% 0, 100% 48%, 90% 100%, 10% 100%, 0 48%, 42% 0);
+}
+.hall-body {
+  position: relative;
+  background: repeating-linear-gradient(90deg, #8c1f1f 0 10px, #f4efe4 10px 28px);
+  border: 4px solid #a33b12; border-bottom: none;
+}
+.plaque {
+  position: absolute; left: 50%; top: 16px; transform: translateX(-50%); z-index: 3;
+  background: #6b1d1d; color: #f3d48a; border: 2px solid #e6c07a;
+  padding: 4px 16px; letter-spacing: 0.28em; font-size: 20px; white-space: nowrap;
+  pointer-events: none;
+}
+.shell .plaque {
+  top: auto;
+  bottom: 54%;
+  transform: translateX(-50%) translateZ(calc(var(--hd) / 2 + 14px));
+}
+.main .plaque { bottom: 36%; }
+.gate-wall .plaque,
+.room-wall .plaque { transform: translateX(-50%) translateZ(18px); }
+.side-hall .plaque,
+.bell .plaque { font-size: 15px; letter-spacing: 0.12em; padding: 2px 8px; }
+.shanmen { width: 520px; }
+.shanmen .roof { height: 78px; }
+.shanmen .hall-body { height: 280px; }
+.front-hall { width: 780px; }
+.front-hall .roof { height: 96px; }
+.front-hall .hall-body { height: 340px; }
+.main { width: 1200px; }
+.main .roof { height: 160px; }
+.main .hall-body { height: 640px; }
+.gate-door, .back-door, .far-door { transform-style: preserve-3d; }
+.gate-door { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); }
+.shanmen .gate-door { width: 112px; height: 168px; }
+.front-hall .gate-door { width: 124px; height: 190px; }
+.main .gate-door { width: 140px; height: 210px; }
+.leaf {
+  position: absolute; top: 0; width: 50%; height: 100%;
+  background:
+    radial-gradient(circle at 50% 18%, #e6c07a 3px, transparent 3.5px),
+    radial-gradient(circle at 50% 36%, #e6c07a 3px, transparent 3.5px),
+    radial-gradient(circle at 50% 54%, #e6c07a 3px, transparent 3.5px),
+    radial-gradient(circle at 50% 72%, #e6c07a 3px, transparent 3.5px),
+    linear-gradient(#8c3b24, #5c2416);
+  border: 3px solid #e6c07a;
+  transition: transform 0.55s ease;
+}
+.leaf.left { left: 0; transform-origin: left center; }
+.leaf.right { right: 0; transform-origin: right center; }
+.gate-door.open .leaf.left, .back-door.open .leaf.left { transform: rotateY(-72deg); }
+.gate-door.open .leaf.right, .back-door.open .leaf.right { transform: rotateY(72deg); }
+.side-hall, .bell { position: absolute; bottom: 0; text-align: center; }
+.side-hall { width: 200px; }
+.side-hall .hall-body { height: 200px; background: #f7f3ea; }
+.side-hall .roof, .bell .roof { height: 48px; }
+.side-hall b, .bell b {
+  position: absolute; left: 50%; top: 8px; transform: translateX(-50%); z-index: 2;
+  background: #f7f3ea; border: 1px solid #a33b12; color: #6b1d1d; font-size: 13px; padding: 0 6px;
+}
+.side-hall.left { left: -30px; }
+.side-hall.right { right: -30px; }
+.bell { width: 84px; right: 8px; }
+.bell .hall-body { height: 300px; background: #f7f3ea; }
+.floor {
+  position: absolute; left: 8%; right: 8%; top: 20%; height: 62%;
+  transform-style: preserve-3d;
+}
+.floor .house,
+.floor .side-hall,
+.floor .bell {
+  position: absolute; left: 50%; top: 0; bottom: auto;
+  width: var(--hw); height: var(--hh);
+  transform: translate(-50%, -100%) rotateX(calc(var(--tilt) * -1));
+  transform-origin: center bottom;
+  transform-style: preserve-3d;
+}
+.floor .side-hall.left { left: 7%; transform: translate(0, -100%) rotateX(calc(var(--tilt) * -1)); }
+.floor .side-hall.right { left: auto; right: 7%; transform: translate(0, -100%) rotateX(calc(var(--tilt) * -1)); }
+.floor .bell { left: auto; right: 1%; transform: translate(0, -100%) rotateX(calc(var(--tilt) * -1)); }
+.shell { position: absolute; inset: 0; transform-style: preserve-3d; }
+.shell .ft, .shell .bk, .shell .lf, .shell .rt, .shell .rf { position: absolute; }
+.shell .ft, .shell .bk { inset: 0; background: repeating-linear-gradient(90deg, #8c1f1f 0 14px, #f4efe4 14px 34px); border: 4px solid #a33b12; }
+.shell .ft { transform: translateZ(calc(var(--hd) / 2)); }
+.shell .bk { background: #6d2c24; transform: rotateY(180deg) translateZ(calc(var(--hd) / 2)); }
+.shell .lf, .shell .rt { width: var(--hd); top: 0; bottom: 0; background: #7a3228; }
+.shell .lf { left: 0; transform: rotateY(-90deg); transform-origin: left center; }
+.shell .rt { right: 0; transform: rotateY(90deg); transform-origin: right center; }
+.shell .rf {
+  left: -12%; right: -12%; top: 0; height: 92px;
+  background: linear-gradient(#f8c56a, #e25812 55%, #9a3410);
+  transform: translateY(-72%) translateZ(36px) rotateX(32deg);
+  transform-origin: center bottom;
+}
+.shell .plaque { z-index: 2; }
+.shell .gate-door { transform: translateX(-50%) translateZ(calc(var(--hd) / 2 + 4px)); }
+.room-wall.far {
+  position: absolute; left: 50%; top: 0; width: 860px; height: 380px;
+  transform: translate(-50%, -100%) rotateX(calc(var(--tilt) * -1));
+  transform-origin: center bottom;
+  transform-style: preserve-3d;
+  background: linear-gradient(#4a3028, #241814 70%);
+  border: 6px solid #a33b12;
+}
+.room.blessing .room-wall.far { background: linear-gradient(#6a3030, #3a1818 70%); }
+.room.treasure .room-wall.far { background: linear-gradient(#6a5428, #3a3018 70%); }
+.room.jewel .room-wall.far { background: linear-gradient(#2a4458, #1a2838 70%); }
+.room.zhao .room-wall.far { background: linear-gradient(#3a342c, #1a1614 70%); }
+.room-wall.side {
+  position: absolute; top: 0; width: 28px; height: 78%;
+  background: #f4efe4; border: 4px solid #a33b12;
+  transform: rotateX(calc(var(--tilt) * -1));
+  transform-origin: center top;
+}
+.room-wall.side.l { left: 2%; }
+.room-wall.side.r { right: 2%; }
+.floor .back-door {
+  bottom: 0;
+  transform: translateX(-50%) rotateX(calc(var(--tilt) * -1));
+  transform-origin: center bottom;
+  transform-style: preserve-3d;
+}
+.gate-wall {
+  position: absolute; left: -6%; right: -6%; top: 100%; height: 0; z-index: 4;
+  transform-style: preserve-3d;
+}
+.room { transform-style: preserve-3d; }
+.gate-wall-face {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 300px;
+  transform-origin: center bottom;
+  transform: rotateX(calc(var(--tilt) * -1));
+  transform-style: preserve-3d;
+  background:
+    linear-gradient(#f7f3ea, #efe6d4) 0 0 / 100% 42% no-repeat,
+    linear-gradient(#8c1f1f, #6b1d1d);
+  border: 8px solid #a33b12;
+  border-bottom: none;
+}
+.gate-wall .plaque { top: 28px; }
+.gate-wall .gate-door { width: 140px; height: 210px; }
+.sill { position: absolute; left: 28%; right: 28%; top: 0; height: 12px; background: #cbb89a; }
+.back-door {
+  position: absolute; left: 50%; bottom: 72px; width: 110px; height: 150px;
+  transform: translateX(-50%); z-index: 4;
+}
+.cell { position: absolute; }
+.zone { position: absolute; left: 0; right: 0; }
+.court-floor {
+  top: 0; height: 100%;
+  background-color: #e6e1d6;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(80, 70, 50, 0.16) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(0deg, rgba(80, 70, 50, 0.16) 0 1px, transparent 1px 34px);
+}
+.carpet {
+  position: absolute; left: 38%; width: 24%; top: 0; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(176, 92, 58, 0.28), transparent);
+}
+.upright, .wish {
+  position: absolute;
+  transform-origin: center bottom;
+  transform: translate(-50%, -100%) rotateX(calc(var(--tilt) * -1));
+  text-align: center;
+}
+.wish { transform: translate(-50%, -170%) rotateX(calc(var(--tilt) * -1)); white-space: nowrap; color: #6b1d1d; text-shadow: 0 1px 2px #fff; }
+.god { width: 108px; transform: translate(-50%, -148%) rotateX(calc(var(--tilt) * -1)); }
+.stage.inside .god,
+.stage.blessing .god,
+.stage.treasure .god,
+.stage.jewel .god { width: 168px; }
+.stage.inside,
+.stage.blessing,
+.stage.treasure,
+.stage.jewel { background: #000; }
+.stage.inside .floor,
+.stage.blessing .floor,
+.stage.treasure .floor,
+.stage.jewel .floor {
+  left: 50%; right: auto; width: 560px; margin-left: -280px;
+  top: 36%; height: 42%;
+}
+.stage.inside .room-wall.far,
+.stage.blessing .room-wall.far,
+.stage.treasure .room-wall.far,
+.stage.jewel .room-wall.far { width: 100%; height: 280px; }
+body:has(.stage.inside),
+body:has(.stage.blessing),
+body:has(.stage.treasure),
+body:has(.stage.jewel),
+.hall:has(.stage.inside),
+.hall:has(.stage.blessing),
+.hall:has(.stage.treasure),
+.hall:has(.stage.jewel) { background: #000; }
+.god-name {
+  position: absolute; left: 50%; top: 100%; transform: translate(-50%, 6px);
+  white-space: nowrap; text-align: center; font-size: 16px; line-height: 1.35;
+  letter-spacing: 0.12em; color: #3a2418; background: rgba(246, 237, 216, 0.94);
+  border: 1px solid #a33b12; padding: 2px 8px;
+}
+.hall-title {
+  position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 5;
+  background: #6b1d1d; color: #f3d48a; border: 2px solid #e6c07a;
+  padding: 4px 18px; letter-spacing: 0.35em; font-size: 18px;
+}
+.interior.zhao .inner-wall { background: linear-gradient(#3a342c, #1a1614 70%); }
+.interior.blessing .inner-wall { background: linear-gradient(#6a3030, #3a1818 70%); }
+.interior.treasure .inner-wall { background: linear-gradient(#6a5428, #3a3018 70%); }
+.interior.jewel .inner-wall { background: linear-gradient(#2a4458, #1a2838 70%); }
+.far-door {
+  position: absolute; left: 50%; bottom: 0; width: 110px; height: 140px;
+  transform: translateX(-50%); transform-style: preserve-3d;
+}
+.gate-door.open .leaf.left, .back-door.open .leaf.left, .far-door.open .leaf.left { transform: rotateY(-72deg); }
+.gate-door.open .leaf.right, .back-door.open .leaf.right, .far-door.open .leaf.right { transform: rotateY(72deg); }
+.side-hall .gate-door { width: 72px; height: 110px; }
+.side-mat {
+  position: absolute; width: 54px; height: 22px; margin: -11px 0 0 -27px;
+  background: #8c1f1f; border: 1px solid #e6c07a; border-radius: 3px;
+  color: #f3d48a; font-size: 12px; line-height: 20px; text-align: center;
+  pointer-events: none;
+}
+.censer { width: 84px; }
+.person { position: absolute; width: 0; height: 0; white-space: nowrap; transform-style: preserve-3d; }
+.person .shadow {
+  position: absolute; left: 0; top: 0; width: 22px; height: 8px;
+  margin: -3px 0 0 -11px; border-radius: 50%; background: rgba(0, 0, 0, 0.38);
+}
+.stand {
+  position: absolute; left: 0; top: 0; width: 40px; height: 78px;
+  transform-origin: center bottom;
+  transform: translate(-50%, -100%) rotateX(calc(var(--tilt) * -1));
+  transform-style: preserve-3d;
+}
+.body3d {
+  position: absolute; inset: 0; transform-style: preserve-3d;
+  transform-origin: center bottom;
+  transform: rotateY(var(--yaw, 0deg));
+}
+.box { position: absolute; transform-style: preserve-3d; width: var(--w); height: var(--h); }
+.box i { position: absolute; backface-visibility: hidden; }
+.box .ft, .box .bk { width: var(--w); height: var(--h); }
+.box .ft { transform: translateZ(calc(var(--d) / 2)); }
+.box .bk { transform: rotateY(180deg) translateZ(calc(var(--d) / 2)); }
+.box .lf, .box .rt { width: var(--d); height: var(--h); left: calc((var(--w) - var(--d)) / 2); }
+.box .lf { transform: rotateY(-90deg) translateZ(calc(var(--w) / 2)); }
+.box .rt { transform: rotateY(90deg) translateZ(calc(var(--w) / 2)); }
+.box .tp, .box .bm { width: var(--w); height: var(--d); top: calc((var(--h) - var(--d)) / 2); }
+.box .tp { transform: rotateX(90deg) translateZ(calc(var(--h) / 2)); }
+.box .bm { transform: rotateX(-90deg) translateZ(calc(var(--h) / 2)); }
+.head { --w: 16px; --h: 16px; --d: 16px; left: 12px; top: 0; }
+.head i { background: #1c1410; }
+.head .ft {
+  background:
+    linear-gradient(#1c1410, #1c1410) 0 0 / 100% 4px no-repeat,
+    radial-gradient(circle at 36% 55%, #2c2118 1.15px, transparent 1.4px),
+    radial-gradient(circle at 64% 55%, #2c2118 1.15px, transparent 1.4px),
+    #f3d7b0;
+}
+.head .bm { background: #e6c2a0; }
+.robe { --w: 24px; --h: 34px; --d: 14px; left: 8px; top: 15px; }
+.robe i { background: #6e2a24; }
+.robe .ft {
+  background:
+    linear-gradient(#d4b483, #d4b483) center 3px / 2px 12px no-repeat,
+    linear-gradient(#d4b483, #d4b483) center top / 16px 2px no-repeat,
+    #8c3b32;
+}
+.robe .bk { background: #5c241c; }
+.arm { --w: 8px; --h: 28px; --d: 8px; top: 16px; transform-origin: center top; }
+.arm.l { left: 0; }
+.arm.r { left: 32px; }
+.arm i { background: #6e2a24; }
+.leg { --w: 9px; --h: 30px; --d: 8px; top: 48px; transform-origin: center top; }
+.leg.l { left: 9px; }
+.leg.r { left: 22px; }
+.leg i { background: linear-gradient(#3a241c 0 76%, #1c1410 76%); }
+.leg .tp { background: #3a241c; }
+.person.walking .leg.l { animation: step-l 0.56s linear infinite; }
+.person.walking .leg.r { animation: step-r 0.56s linear infinite; }
+.person.walking:not(.palms) .arm.l { animation: arm-l 0.56s linear infinite; }
+.person.walking:not(.palms) .arm.r { animation: arm-r 0.56s linear infinite; }
+@keyframes step-l {
+  0%, 45%, 100% { transform: rotateX(0deg); }
+  18% { transform: rotateX(-42deg); }
+}
+@keyframes step-r {
+  0%, 50%, 100% { transform: rotateX(0deg); }
+  68% { transform: rotateX(-42deg); }
+}
+@keyframes arm-l {
+  0%, 45%, 100% { transform: rotateX(0deg); }
+  18% { transform: rotateX(24deg); }
+}
+@keyframes arm-r {
+  0%, 50%, 100% { transform: rotateX(0deg); }
+  68% { transform: rotateX(24deg); }
+}
+.person.palms .arm.l { transform: rotateY(62deg) rotateX(-18deg); }
+.person.palms .arm.r { transform: rotateY(-62deg) rotateX(-18deg); }
+.person .name {
+  position: absolute; left: 0; top: 0;
+  transform-origin: center top;
+  transform: translate(-50%, 4px) rotateX(calc(var(--tilt) * -1));
+  font-size: 14px; color: #3a2418; text-shadow: 0 1px 2px #fff;
+}
+.figure { display: block; width: 100%; height: auto; }
+.god-figure { width: 108px; }
+.god, .censer, .person, .wish, .exit, button, input { font: inherit; }
+.exit, button { background: #8a1f1f; color: #f3d48a; border: 0; border-radius: 8px; padding: 10px 16px; }
+.exit { position: absolute; right: 16px; bottom: 16px; z-index: 5; }
+.sheet { position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 5; background: #f6edd8; color: #3d1010; border-radius: 12px; padding: 12px; }
+input { width: 100%; padding: 8px; border-radius: 8px; border: 0; }
+.toast { position: absolute; top: 16px; left: 16px; right: 16px; z-index: 5; text-align: center; color: #6b1d1d; }
+.cushion {
+  position: absolute; width: 54px; height: 18px; margin-left: -27px;
+  border-radius: 50%; background: #6b2420; border: 1px solid #d4b483; pointer-events: none;
+}
+.pray {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 6;
+  min-width: 180px; padding: 12px 28px; letter-spacing: 0.4em;
+  background: #8a1f1f; color: #f3d48a; border: 2px solid #e6c07a; border-radius: 999px;
+}
+.hall:has(.pray) .quiet { bottom: 72px; }
+.hall:has(.pray) .exit { bottom: 72px; }
+.quiet {
+  position: absolute; left: 8px; right: 72px; bottom: 14px; z-index: 5;
+  display: flex; gap: 8px; justify-content: center;
+}
+.quiet button {
+  background: rgba(20, 12, 8, 0.78); color: #f3d48a; border: 1px solid #d4b483;
+  border-radius: 999px; padding: 8px 12px;
+}
+.person.bowing .stand { animation: bow 1.6s ease-in-out infinite; }
+@keyframes bow {
+  0%, 40%, 80% { transform: translate(-50%, -100%) rotateX(calc(var(--tilt) * -1)); }
+  20%, 60%, 100% { transform: translate(-50%, -100%) rotateX(calc(var(--tilt) * -1 - 26deg)); }
+}

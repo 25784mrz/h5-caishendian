@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { TEXT } from "../shared/constants.js";
+import { TEXT } from "../server/constants.js";
 import { checkText } from "../server/filter.js";
 
 const banned = ["傻逼", "加微信", "博彩"];

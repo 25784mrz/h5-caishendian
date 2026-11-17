@@ -3,22 +3,23 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
-import { heartbeat, join as enter, leave, move, offer, snapshot, sweep } from "./hall.js";
+import { gesture, heartbeat, join as enter, leave, move, offer, snapshot, sweep } from "./hall.js";
 import { createSaver } from "./saver.js";
 import { readHallFile, writeHallFile } from "./store.js";
 import { loadBannedWords } from "./words.js";
-import { SWEEP_MS } from "../shared/constants.js";
+import { SWEEP_MS } from "./constants.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const files = {
-  "/": ["public/index.html", "text/html; charset=utf-8"],
-  "/index.html": ["public/index.html", "text/html; charset=utf-8"],
-  "/hall.js": ["public/hall.js", "text/javascript; charset=utf-8"],
-  "/hall.css": ["public/hall.css", "text/css; charset=utf-8"],
-  "/client-rules.js": ["public/client-rules.js", "text/javascript; charset=utf-8"],
-  "/ambient.js": ["public/ambient.js", "text/javascript; charset=utf-8"],
-  "/shared/constants.js": ["shared/constants.js", "text/javascript; charset=utf-8"],
-  "/server/filter.js": ["server/filter.js", "text/javascript; charset=utf-8"],
+  "/": ["client/index.html", "text/html; charset=utf-8"],
+  "/index.html": ["client/index.html", "text/html; charset=utf-8"],
+  "/hall.js": ["client/hall.js", "text/javascript; charset=utf-8"],
+  "/hall.css": ["client/hall.css", "text/css; charset=utf-8"],
+  "/client-rules.js": ["client/client-rules.js", "text/javascript; charset=utf-8"],
+  "/figures.js": ["client/figures.js", "text/javascript; charset=utf-8"],
+  "/ambient.js": ["client/ambient.js", "text/javascript; charset=utf-8"],
+  "/constants.js": ["client/constants.js", "text/javascript; charset=utf-8"],
+  "/filter.js": ["client/filter.js", "text/javascript; charset=utf-8"],
   "/data/words.txt": ["data/words.txt", "text/plain; charset=utf-8"],
 };
 
@@ -31,7 +32,7 @@ async function serveStatic(req, res) {
     return;
   }
   const body = await readFile(join(root, match[0]));
-  res.writeHead(200, { "content-type": match[1] });
+  res.writeHead(200, { "content-type": match[1], "cache-control": "no-cache" });
   res.end(body);
 }
 
@@ -157,7 +158,9 @@ export async function createTempleServer(options) {
           return;
         }
         const result = msg.type === "move"
-          ? move(hall, sessionId, msg.x, msg.y)
+          ? move(hall, sessionId, msg.x, msg.y, now)
+          : msg.type === "gesture"
+            ? gesture(hall, sessionId, msg.gesture)
           : msg.type === "offer"
             ? offer(hall, sessionId, msg.wish, bannedWords, now)
             : msg.type === "exit"
@@ -173,6 +176,7 @@ export async function createTempleServer(options) {
           return;
         }
         if (msg.type === "exit") sockets.delete(sessionId);
+        if (result.message) ws.send(JSON.stringify({ type: "rejected", action: msg.type, message: result.message }));
         await saveAndBroadcast(() => saver.saveNow(hall, now));
       });
     });

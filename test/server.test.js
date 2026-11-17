@@ -4,7 +4,7 @@ import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WebSocket } from "ws";
-import { CENSER, HALL_CAP } from "../shared/constants.js";
+import { CENSER, HALL_CAP } from "../server/constants.js";
 import { createTempleServer } from "../server/server.js";
 
 async function open(port) {

@@ -1,4 +1,4 @@
-import { TEXT } from "../shared/constants.js";
+import { TEXT } from "./constants.js";
 
 function isAllowed(ch) {
   return /[0-9]/u.test(ch) || /^\p{Script=Han}$/u.test(ch);

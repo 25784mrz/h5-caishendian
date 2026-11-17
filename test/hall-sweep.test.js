@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CENSER, HALL_CAP, HEARTBEAT_TIMEOUT_MS, INCENSE_MS } from "../shared/constants.js";
+import { CENSER, HALL_CAP, HEARTBEAT_TIMEOUT_MS, INCENSE_MS } from "../server/constants.js";
 import { createHall, heartbeat, join, move, offer, restore, sweep } from "../server/hall.js";
 
 const banned = [];

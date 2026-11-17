@@ -8,7 +8,9 @@ import {
   MOVE_Y,
   TEXT,
   nearCenser,
-} from "../shared/constants.js";
+  nearGod,
+  stopAtWalls,
+} from "./constants.js";
 import { checkText } from "./filter.js";
 
 export function createHall() {
@@ -61,7 +63,11 @@ export function promote(hall) {
   }
 }
 
-export function move(hall, sessionId, x, y) {
+function incenseBurning(person, now) {
+  return Boolean(person.incense) && now - person.incense.litAt < INCENSE_MS;
+}
+
+export function move(hall, sessionId, x, y, now = Date.now()) {
   const person = hall.people[sessionId];
   if (!person || person.place === "queue") return { ok: false, message: TEXT.goOutside };
   const nx = Number(x);
@@ -69,9 +75,22 @@ export function move(hall, sessionId, x, y) {
   if (!Number.isFinite(nx) || !Number.isFinite(ny)) return { ok: false, message: TEXT.goOutside };
   const cx = Math.min(MOVE_X.max, Math.max(MOVE_X.min, nx));
   const cy = Math.min(MOVE_Y.max, Math.max(MOVE_Y.min, ny));
-  person.x = cx;
-  person.y = cy;
-  person.place = cy > DOOR_Y ? "outside" : "inside";
+  const stopped = stopAtWalls(person, { x: cx, y: cy });
+  person.x = stopped.x;
+  person.y = stopped.y;
+  person.place = person.y > DOOR_Y ? "outside" : "inside";
+  if (incenseBurning(person, now) && nearGod(person.x, person.y) && person.bowedFor !== person.incense.litAt) {
+    person.bowedFor = person.incense.litAt;
+  }
+  return { ok: true };
+}
+
+export function gesture(hall, sessionId, value) {
+  const person = hall.people[sessionId];
+  if (!person || person.place === "queue") return { ok: false, message: TEXT.goOutside };
+  if (value !== "" && value !== "palms" && value !== "bow") return { ok: false, message: TEXT.goOutside };
+  if (value) person.gesture = value;
+  else delete person.gesture;
   return { ok: true };
 }
 
@@ -112,6 +131,8 @@ export function snapshot(hall, sessionId, now = 0) {
       y: person.y,
       place: person.place,
       incense: person.incense ? { wish: person.incense.wish, litAt: person.incense.litAt } : null,
+      ...(Number.isFinite(person.bowedFor) ? { bowedFor: person.bowedFor } : {}),
+      ...(person.gesture ? { gesture: person.gesture } : {}),
     })),
   };
 }
@@ -181,6 +202,8 @@ export function restore(data, now) {
       place: person.place,
       lastHeartbeat: person.lastHeartbeat,
       incense: person.incense ? { wish: person.incense.wish, litAt: person.incense.litAt } : null,
+      ...(Number.isFinite(person.bowedFor) ? { bowedFor: person.bowedFor } : {}),
+      ...(person.gesture === "palms" || person.gesture === "bow" ? { gesture: person.gesture } : {}),
     };
   }
   const queued = new Set();

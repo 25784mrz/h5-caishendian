@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CENSER, TEXT } from "../shared/constants.js";
+import { CENSER, TEXT } from "../server/constants.js";
 import { createHall, join, move, offer } from "../server/hall.js";
 
 const banned = ["博彩"];
