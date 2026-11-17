@@ -38,7 +38,16 @@ function connect() {
     const msg = JSON.parse(event.data);
     if (msg.type === "rejected") {
       toast = msg.message;
-      if (msg.action === "hello") name = readName(phone);
+      if (msg.action === "hello") {
+        const storedName = readName(phone);
+        const accepted = state?.people?.some((person) => person.sessionId === sessionId);
+        if (!accepted && storedName && storedName === name) {
+          name = "";
+          writeName(phone, "");
+        } else {
+          name = storedName;
+        }
+      }
       render();
       return;
     }
