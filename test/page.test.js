@@ -18,10 +18,13 @@ test("a rejected hello returns to naming without storing the attempt", async () 
   assert.match(js, /if \(!state\)[\s\S]*TEXT\.reopening/);
 });
 
-test("a refused stored name is cleared unless it was already accepted", async () => {
+test("a refused stored name trusts only acceptance on the current socket", async () => {
   const js = await readFile(new URL("../public/hall.js", import.meta.url), "utf8");
   assert.match(js, /const storedName = readName\(phone\)/);
   assert.match(js, /storedName && storedName === name/);
-  assert.match(js, /state\?\.people\?\.some/);
+  assert.match(js, /let acceptedOnSocket = false/);
+  assert.match(js, /addEventListener\("open"[\s\S]*acceptedOnSocket = false/);
+  assert.match(js, /if \(me\) \{\s*acceptedOnSocket = true/);
+  assert.doesNotMatch(js, /state\?\.people\?\.some/);
   assert.match(js, /writeName\(phone, ""\)/);
 });

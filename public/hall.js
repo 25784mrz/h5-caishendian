@@ -11,6 +11,7 @@ let sessionId = readSession(page, () => `s${crypto.randomUUID()}`);
 let socket = null;
 let state = null;
 let connected = false;
+let acceptedOnSocket = false;
 let sheet = false;
 let toast = "";
 let previousPeople = [];
@@ -30,6 +31,7 @@ function serverNow() {
 function connect() {
   socket = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}`);
   socket.addEventListener("open", () => {
+    acceptedOnSocket = false;
     connected = true;
     if (name) send({ type: "hello", name, sessionId });
     send({ type: "heartbeat" });
@@ -40,8 +42,7 @@ function connect() {
       toast = msg.message;
       if (msg.action === "hello") {
         const storedName = readName(phone);
-        const accepted = state?.people?.some((person) => person.sessionId === sessionId);
-        if (!accepted && storedName && storedName === name) {
+        if (!acceptedOnSocket && storedName && storedName === name) {
           name = "";
           writeName(phone, "");
         } else {
@@ -54,6 +55,7 @@ function connect() {
     if (msg.type === "state") {
       const me = msg.people.find((person) => person.sessionId === sessionId);
       if (me) {
+        acceptedOnSocket = true;
         name = me.name;
         if (readName(phone) !== name) writeName(phone, name);
       }
